@@ -1,0 +1,574 @@
+import React, { useState, useRef } from 'react';
+import { BookOpen, AlertTriangle, CheckCircle, Shield, XCircle, BarChart, Users, Printer, FileText, ArrowRight, Brain, Lock } from 'lucide-react';
+
+const EdukasiFraudApp = () => {
+  // State Navigasi Belajar
+  const [currentModule, setCurrentModule] = useState(0);
+  const [step, setStep] = useState('intro'); // intro, materi, scenario, quiz, summary, form, print
+  
+  // State Interaksi
+  const [score, setScore] = useState(0);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackData, setFeedbackData] = useState({ type: '', msg: '' });
+  
+  // State Form Data (untuk cetak)
+  const [formData, setFormData] = useState({
+    nama: '',
+    nik: '',
+    jabatan: 'Pengurus',
+    unit: '',
+    hp: '',
+    tanggal: new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })
+  });
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  // --- DATA MODUL PEMBELAJARAN ---
+  const modules = [
+    {
+      title: "MODUL 1: Membedah Anatomi Fraud",
+      icon: <AlertTriangle className="text-red-500" />,
+      content: (
+        <div className="space-y-4 text-sm leading-relaxed text-gray-700">
+          <p className="font-semibold text-gray-900">Apa itu Fraud Sebenarnya?</p>
+          <p>
+            Fraud bukan sekadar "mencuri". Dalam konteks koperasi, fraud adalah segala tindakan <span className="font-bold text-red-600">penipuan yang disengaja</span> untuk keuntungan pribadi yang merugikan aset atau reputasi organisasi.
+          </p>
+          <p className="font-semibold text-gray-900 mt-4">3 Jenis Utama Fraud (ACFE Tree):</p>
+          <ul className="list-disc pl-5 space-y-2">
+            <li>
+              <strong>Penyalahgunaan Aset (Asset Misappropriation):</strong> Ini paling sering terjadi. Contoh: Mengambil uang kas kecil, memalsukan bon bensin, atau menggelapkan inventaris kantor. Di koperasi, modus terkenalnya adalah <em>Lapping</em> (Gali lubang tutup lubang setoran anggota).
+            </li>
+            <li>
+              <strong>Kecurangan Laporan Keuangan (Financial Statement Fraud):</strong> Memanipulasi angka agar terlihat "sehat". Contoh: <em>Window Dressing</em>—mencatat pendapatan yang belum diterima agar Sisa Hasil Usaha (SHU) terlihat besar, padahal kas kosong.
+            </li>
+            <li>
+              <strong>Korupsi:</strong> Penyalahgunaan wewenang. Contoh: Menerima komisi (kickback) dari vendor pengadaan barang koperasi, atau konflik kepentingan (memberi pinjaman ke kerabat tanpa jaminan yang sah).
+            </li>
+          </ul>
+        </div>
+      ),
+      scenario: {
+        title: "Kasus: Setoran yang 'Parkir'",
+        desc: "Budi, seorang kolektor lapangan, menerima angsuran tunai Rp 1.000.000 dari anggota pada hari Jumat. Karena admin sudah pulang, Budi memakai uang itu untuk belanja bulanan dan berencana menyetorkannya hari Senin saat gajian. Apakah ini fraud?",
+        options: [
+          { 
+            text: "Bukan, karena uangnya pasti diganti hari Senin.", 
+            type: "error", 
+            feedback: "SALAH. Ini disebut 'Lapping' atau pemakaian sementara. Menggunakan dana koperasi untuk kepentingan pribadi, walau sedetik, adalah fraud." 
+          },
+          { 
+            text: "Ya, ini adalah penyalahgunaan aset.", 
+            type: "success", 
+            feedback: "BENAR. Uang anggota harus langsung disetor atau disimpan di brankas kantor, bukan di dompet pribadi." 
+          }
+        ]
+      },
+      quiz: {
+        q: "Manakah di bawah ini yang termasuk 'Window Dressing' atau manipulasi laporan?",
+        options: [
+          "Mencatat pengeluaran listrik sesuai tagihan",
+          "Mengakui pendapatan bunga tahun depan sebagai pendapatan bulan ini agar target tercapai",
+          "Menghitung uang kas fisik setiap sore",
+          "Menolak pinjaman anggota yang macet"
+        ],
+        ans: 1
+      }
+    },
+    {
+      title: "MODUL 2: Fraud Triangle (Kenapa Orang Baik Jadi Jahat?)",
+      icon: <Brain className="text-blue-500" />,
+      content: (
+        <div className="space-y-4 text-sm leading-relaxed text-gray-700">
+          <p>
+            Riset Donald Cressey menunjukkan orang jujur bisa melakukan fraud jika terjebak dalam 3 kondisi ini (Fraud Triangle):
+          </p>
+          <ol className="list-decimal pl-5 space-y-3">
+            <li>
+              <strong>Tekanan (Pressure):</strong> Dorongan kebutuhan mendesak yang tidak bisa diceritakan ke orang lain. 
+              <br/><span className="text-xs bg-gray-100 p-1">Contoh: Terlilit hutang pinjol, gaya hidup hedon, atau biaya pengobatan keluarga sakit keras.</span>
+            </li>
+            <li>
+              <strong>Kesempatan (Opportunity):</strong> Celah dalam sistem yang memungkinkan seseorang mencuri tanpa ketahuan.
+              <br/><span className="text-xs bg-gray-100 p-1">Contoh: Password komputer ditempel di monitor, kasir merangkap pembukuan (tidak ada pemisahan tugas), brankas tidak dikunci ganda.</span>
+            </li>
+            <li>
+              <strong>Pembenaran (Rationalization):</strong> Alibi mental agar tidak merasa bersalah.
+              <br/><span className="text-xs bg-gray-100 p-1">Contoh: 'Saya cuma pinjam', 'Gaji saya terlalu kecil untuk kerja seberat ini', atau 'Semua orang juga melakukannya'.</span>
+            </li>
+          </ol>
+          <p className="bg-yellow-50 p-2 border-l-4 border-yellow-500 text-xs italic">
+            <strong>Penting:</strong> Kita sulit mengontrol Tekanan dan Pembenaran seseorang, tapi kita BISA menutup <strong>Kesempatan</strong> lewat sistem.
+          </p>
+        </div>
+      ),
+      scenario: {
+        title: "Kasus: Password Bersama",
+        desc: "Karena sering lupa password sistem akuntansi, Manajer memutuskan membuat satu password umum 'admin123' yang bisa dipakai semua staf agar pekerjaan cepat. Apa risiko dari sisi Fraud Triangle?",
+        options: [
+          { 
+            text: "Meningkatkan Efisiensi kerja.", 
+            type: "error", 
+            feedback: "SALAH. Efisiensi tidak boleh mengorbankan keamanan." 
+          },
+          { 
+            text: "Menciptakan Kesempatan (Opportunity) besar.", 
+            type: "success", 
+            feedback: "BENAR. Jika ada transaksi fiktif, tidak ada yang tahu siapa pelakunya (Log Audit rusak). Ini membuka pintu fraud selebar-lebarnya." 
+          }
+        ]
+      },
+      quiz: {
+        q: "Kalimat: 'Saya sudah kerja 10 tahun tapi tidak naik gaji, wajar saya ambil bonus sedikit', adalah contoh dari...",
+        options: [
+          "Tekanan (Pressure)",
+          "Kesempatan (Opportunity)",
+          "Pembenaran (Rationalization)",
+          "Penyalahgunaan Aset"
+        ],
+        ans: 2
+      }
+    },
+    {
+      title: "MODUL 3: Dampak Fatal & Efek Domino",
+      icon: <XCircle className="text-orange-500" />,
+      content: (
+        <div className="space-y-4 text-sm leading-relaxed text-gray-700">
+          <p>
+            Banyak yang mengira dampak fraud hanya sebatas "uang hilang". Padahal itu hanya puncak gunung es. Dampak di bawah permukaan jauh lebih mematikan bagi Kopkar AKM:
+          </p>
+          <ul className="list-disc pl-5 space-y-2">
+            <li>
+              <strong>Rush Money (Penarikan Massal):</strong> Jika anggota mendengar isu pengurus tidak jujur, mereka panik dan menarik simpanan bersamaan. Koperasi bisa kolaps/bangkrut dalam hitungan hari karena likuiditas kering.
+            </li>
+            <li>
+              <strong>Risiko Hukum (Pidana):</strong> Penggelapan dalam jabatan (Pasal 374 KUHP) ancamannya 5 tahun penjara. Ini berlaku bagi pelaku DAN pembiaran oleh pengawas.
+            </li>
+            <li>
+              <strong>Hancurnya Karir & Sosial:</strong> Pelaku fraud akan masuk daftar hitam (blacklist). Tidak ada perusahaan yang mau menerima mantan narapidana kasus keuangan. Rasa malu bagi keluarga tidak ternilai harganya.
+            </li>
+          </ul>
+        </div>
+      ),
+      scenario: {
+        title: "Kasus: Gosip Warung Kopi",
+        desc: "Beredar gosip bahwa uang simpanan anggota dipakai investasi bodong oleh pengurus. Anggota mulai resah. Apa yang terjadi jika tidak segera ditangani?",
+        options: [
+          { 
+            text: "Terjadi Rush Money dan koperasi tutup.", 
+            type: "success", 
+            feedback: "BENAR. Kepercayaan adalah mata uang termahal di koperasi. Hilang kepercayaan = Mati." 
+          },
+          { 
+            text: "Tidak ada masalah selama bunga lancar.", 
+            type: "error", 
+            feedback: "SALAH. Anggota koperasi mementingkan keamanan dana pokok di atas bunga." 
+          }
+        ]
+      },
+      quiz: {
+        q: "Pasal KUHP yang sering menjerat pelaku fraud penggelapan dalam jabatan adalah...",
+        options: [
+          "Pasal Berlapis",
+          "Pasal 374 KUHP",
+          "Pasal Pencemaran Nama Baik",
+          "Pasal Karet"
+        ],
+        ans: 1
+      }
+    },
+    {
+      title: "MODUL 4: 4 Tameng Pertahanan (The Shields)",
+      icon: <Shield className="text-green-500" />,
+      content: (
+        <div className="space-y-4 text-sm leading-relaxed text-gray-700">
+          <p>
+            Bagaimana kita melindungi Kopkar AKM? Kita gunakan strategi 4 Lapis Pertahanan:
+          </p>
+          <div className="grid grid-cols-1 gap-2">
+            <div className="bg-green-50 p-2 rounded border border-green-200">
+              <strong>1. Prevention (Pencegahan):</strong> Paling murah & efektif.
+              <ul className="list-square pl-4 mt-1 text-xs">
+                <li><em>Dual Control:</em> Tanda tangan cek minimal 2 orang.</li>
+                <li><em>Segregation of Duty:</em> Kasir tidak boleh pegang pembukuan.</li>
+                <li><em>SOP Tertulis:</em> Aturan main yang jelas.</li>
+              </ul>
+            </div>
+            <div className="bg-blue-50 p-2 rounded border border-blue-200">
+              <strong>2. Detection (Deteksi):</strong> Menangkap basah.
+              <ul className="list-square pl-4 mt-1 text-xs">
+                <li><em>Surprise Audit:</em> Pemeriksaan kas dadakan.</li>
+                <li><em>Whistleblowing System:</em> Jalur lapor rahasia bagi pelapor.</li>
+                <li><em>Rotasi Jabatan:</em> Agar kecurangan lama terbongkar.</li>
+              </ul>
+            </div>
+            <div className="bg-yellow-50 p-2 rounded border border-yellow-200">
+              <strong>3. Investigation (Investigasi):</strong> Membedah fakta. Mencari bukti valid, bukan asumsi, saat ada indikasi fraud.
+            </div>
+            <div className="bg-red-50 p-2 rounded border border-red-200">
+              <strong>4. Enforcement (Penindakan):</strong> Sanksi tegas tanpa pandang bulu (Zero Tolerance). Pecat dan proses hukum, siapapun pelakunya.
+            </div>
+          </div>
+        </div>
+      ),
+      scenario: {
+        title: "Kasus: Teman Akrab",
+        desc: "Anda melihat teman akrab Anda memalsukan nota pembelian ATK (Mark up harga). Dia minta tolong Anda diam saja karena dia butuh uang untuk susu anak. Apa tindakan sesuai konsep 'Detection'?",
+        options: [
+          { 
+            text: "Melapor ke saluran Whistleblowing.", 
+            type: "success", 
+            feedback: "BENAR. Melindungi teman yang salah berarti menghancurkan koperasi tempat kita semua mencari nafkah." 
+          },
+          { 
+            text: "Diam saja karena kasihan.", 
+            type: "error", 
+            feedback: "SALAH. Pembiaran membuat Anda menjadi 'accomplice' (kaki tangan) dalam tindak pidana." 
+          }
+        ]
+      },
+      quiz: {
+        q: "Apa arti 'Segregation of Duty' dalam pencegahan fraud?",
+        options: [
+          "Tugas yang dikerjakan bersama-sama",
+          "Pemisahan tugas agar satu orang tidak memegang kontrol penuh (misal: catat & pegang uang)",
+          "Pembagian jam kerja shift",
+          "Pemisahan ruangan kerja pria dan wanita"
+        ],
+        ans: 1
+      }
+    }
+  ];
+
+  // LOGIC HANDLERS
+  const handleNext = () => {
+    setShowFeedback(false);
+    
+    if (step === 'intro') {
+      setStep('materi');
+    } else if (step === 'materi') {
+      setStep('scenario');
+    } else if (step === 'scenario') {
+      setStep('quiz');
+    } else if (step === 'quiz') {
+      if (currentModule < modules.length - 1) {
+        setCurrentModule(currentModule + 1);
+        setStep('materi');
+      } else {
+        setStep('summary');
+      }
+    }
+  };
+
+  const handleScenarioChoice = (option) => {
+    setFeedbackData({ type: option.type, msg: option.feedback });
+    setShowFeedback(true);
+  };
+
+  const handleQuizAnswer = (idx) => {
+    const isCorrect = idx === modules[currentModule].quiz.ans;
+    if (isCorrect) {
+      setScore(score + 1);
+      setFeedbackData({ type: 'success', msg: "Jawaban Tepat! Poin +1" });
+    } else {
+      setFeedbackData({ type: 'error', msg: "Jawaban Kurang Tepat." });
+    }
+    setShowFeedback(true);
+  };
+
+  // --- RENDER COMPONENT ---
+  return (
+    <div className="min-h-screen bg-gray-100 font-sans text-gray-800">
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          .print-area, .print-area * { visibility: visible; }
+          .print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 40px; }
+          .no-print { display: none !important; }
+        }
+      `}</style>
+
+      {/* HEADER UTAMA */}
+      <div className="max-w-lg mx-auto bg-white min-h-screen flex flex-col shadow-2xl no-print">
+        <div className="bg-blue-900 p-5 text-white shadow-md z-10">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-xl font-bold flex items-center gap-2">
+                <Shield className="w-6 h-6" /> Akademi Anti-Fraud
+              </h1>
+              <p className="text-xs text-blue-200">Kopkar AKM - Program Integritas</p>
+            </div>
+            {step !== 'intro' && step !== 'summary' && step !== 'form' && (
+              <div className="text-right">
+                <div className="text-xs opacity-75">Modul</div>
+                <div className="font-bold text-lg">{currentModule + 1}/{modules.length}</div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* PROGRESS BAR */}
+        {step !== 'intro' && step !== 'summary' && step !== 'form' && (
+          <div className="w-full bg-gray-200 h-2">
+            <div 
+              className="bg-green-500 h-2 transition-all duration-500" 
+              style={{ width: `${((currentModule * 3 + (step === 'materi' ? 1 : step === 'scenario' ? 2 : 3)) / (modules.length * 3)) * 100}%` }}
+            ></div>
+          </div>
+        )}
+
+        <div className="flex-grow p-6 overflow-y-auto pb-20">
+          
+          {/* 1. INTRO SCREEN */}
+          {step === 'intro' && (
+            <div className="text-center py-10 space-y-6">
+              <div className="bg-blue-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Lock className="w-12 h-12 text-blue-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800">Selamat Datang</h2>
+              <p className="text-gray-600 leading-relaxed px-4">
+                Anda akan memasuki sesi pelatihan intensif. 
+                Metode belajar: <strong>Baca Materi</strong> &rarr; <strong>Simulasi Kasus</strong> &rarr; <strong>Kuis</strong>.
+                <br/><br/>
+                Pastikan Anda membaca setiap detail karena akan diuji langsung.
+              </p>
+              <button onClick={handleNext} className="bg-blue-700 text-white px-8 py-3 rounded-full font-bold shadow-lg hover:bg-blue-800 transition transform hover:scale-105 flex items-center gap-2 mx-auto">
+                Mulai Pelatihan <ArrowRight size={20}/>
+              </button>
+            </div>
+          )}
+
+          {/* 2. MATERI SCREEN */}
+          {step === 'materi' && (
+            <div className="animate-fade-in">
+              <div className="flex items-center gap-3 mb-6 border-b pb-4">
+                <div className="p-2 bg-gray-100 rounded-lg">{modules[currentModule].icon}</div>
+                <h2 className="text-lg font-bold text-blue-900 leading-tight">{modules[currentModule].title}</h2>
+              </div>
+              
+              <div className="prose prose-sm max-w-none text-gray-700">
+                {modules[currentModule].content}
+              </div>
+
+              <button onClick={handleNext} className="w-full mt-8 bg-blue-700 text-white py-3 rounded-lg font-bold flex justify-center items-center gap-2 hover:bg-blue-800">
+                <Brain size={18}/> Lanjut ke Studi Kasus
+              </button>
+            </div>
+          )}
+
+          {/* 3. SCENARIO SCREEN */}
+          {step === 'scenario' && (
+            <div className="animate-fade-in">
+              <div className="bg-yellow-50 border border-yellow-200 p-2 rounded text-xs font-bold text-yellow-800 mb-4 inline-block">
+                STUDI KASUS NYATA
+              </div>
+              <h3 className="text-xl font-bold mb-3">{modules[currentModule].scenario.title}</h3>
+              <p className="text-gray-700 mb-6 leading-relaxed">{modules[currentModule].scenario.desc}</p>
+
+              {!showFeedback ? (
+                <div className="space-y-3">
+                  {modules[currentModule].scenario.options.map((opt, i) => (
+                    <button 
+                      key={i} 
+                      onClick={() => handleScenarioChoice(opt)}
+                      className="w-full text-left p-4 border-2 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all font-medium text-sm"
+                    >
+                      {opt.text}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className={`p-5 rounded-xl border-2 ${feedbackData.type === 'success' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                  <div className="flex items-center gap-2 mb-2 font-bold text-lg">
+                    {feedbackData.type === 'success' ? <CheckCircle className="text-green-600"/> : <XCircle className="text-red-600"/>}
+                    {feedbackData.type === 'success' ? 'Keputusan Tepat' : 'Kurang Tepat'}
+                  </div>
+                  <p className="text-gray-700 mb-4">{feedbackData.msg}</p>
+                  <button onClick={handleNext} className="w-full bg-gray-800 text-white py-3 rounded-lg font-bold">Lanjut ke Kuis</button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 4. QUIZ SCREEN */}
+          {step === 'quiz' && (
+            <div className="animate-fade-in">
+              <div className="bg-purple-50 border border-purple-200 p-2 rounded text-xs font-bold text-purple-800 mb-4 inline-block">
+                KUIS PEMAHAMAN
+              </div>
+              <p className="font-bold text-lg mb-6">{modules[currentModule].quiz.q}</p>
+
+              {!showFeedback ? (
+                <div className="space-y-3">
+                  {modules[currentModule].quiz.options.map((opt, i) => (
+                    <button 
+                      key={i} 
+                      onClick={() => handleQuizAnswer(i)}
+                      className="w-full text-left p-4 bg-white border shadow-sm rounded-lg hover:bg-purple-50 hover:text-purple-700 transition font-medium text-sm"
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <div className={`text-xl font-bold mb-2 ${feedbackData.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                    {feedbackData.msg}
+                  </div>
+                  <button onClick={handleNext} className="mt-4 bg-blue-700 text-white px-8 py-3 rounded-full font-bold shadow-lg">
+                    {currentModule < modules.length - 1 ? "Modul Berikutnya" : "Lihat Hasil Akhir"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 5. SUMMARY SCREEN */}
+          {step === 'summary' && (
+            <div className="text-center py-8">
+              <div className="text-6xl mb-4">🎓</div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Pelatihan Selesai!</h2>
+              <div className="text-4xl font-bold text-blue-600 mb-4">{score} / {modules.length}</div>
+              <p className="text-gray-600 mb-8 px-4">
+                {score === modules.length 
+                  ? "Sempurna! Pemahaman Anda sangat baik tentang integritas koperasi." 
+                  : "Bagus! Terus tingkatkan kewaspadaan terhadap fraud."}
+              </p>
+              
+              <div className="bg-blue-50 p-6 rounded-xl border border-blue-100 mx-4">
+                <h3 className="font-bold text-blue-900 mb-2">Langkah Terakhir</h3>
+                <p className="text-sm text-blue-800 mb-4">Untuk meresmikan partisipasi Anda, silakan isi formulir komitmen anti-fraud di bawah ini.</p>
+                <button onClick={() => setStep('form')} className="w-full bg-blue-700 text-white py-3 rounded-lg font-bold">
+                  Isi Pernyataan Komitmen
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 6. FORM SCREEN */}
+          {step === 'form' && (
+            <div className="space-y-4">
+              <div className="bg-green-50 p-5 rounded-xl border border-green-200">
+                <h3 className="font-bold text-green-900 flex items-center gap-2 mb-2"><FileText size={20}/> Form Komitmen Resmi</h3>
+                <p className="text-xs text-green-800 mb-6">Data ini akan dicetak sebagai bukti kepatuhan Anda terhadap kebijakan Anti-Fraud Kopkar AKM.</p>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase">Nama Lengkap</label>
+                    <input name="nama" className="w-full mt-1 p-3 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none" onChange={handleInputChange} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase">NIK / NIP</label>
+                    <input name="nik" className="w-full mt-1 p-3 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none" onChange={handleInputChange} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase">Jabatan</label>
+                    <select name="jabatan" className="w-full mt-1 p-3 border rounded-lg bg-white" onChange={handleInputChange}>
+                      <option value="Pengurus">Pengurus</option>
+                      <option value="Pengawas">Pengawas / SPI</option>
+                      <option value="Pengelola">Pengelola / Staf</option>
+                      <option value="Anggota">Anggota</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase">Unit Kerja</label>
+                    <input name="unit" className="w-full mt-1 p-3 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none" onChange={handleInputChange} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase">No. HP / Email</label>
+                    <input name="hp" className="w-full mt-1 p-3 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none" onChange={handleInputChange} />
+                  </div>
+                </div>
+                
+                <button onClick={handlePrint} className="w-full bg-gray-900 text-white py-4 rounded-xl font-bold mt-6 flex items-center justify-center gap-2 hover:bg-black transition shadow-lg">
+                  <Printer size={20} /> Cetak & Tanda Tangan
+                </button>
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+
+      {/* --- AREA CETAK (Hanya Muncul saat Print) --- */}
+      <div className="print-area hidden bg-white text-black font-serif leading-relaxed text-sm">
+        <div className="text-center mb-6 border-b-2 border-black pb-4">
+          <h1 className="text-2xl font-bold uppercase tracking-wider mb-1">Pernyataan Kepatuhan</h1>
+          <h2 className="text-xl font-bold">Kebijakan Anti-Fraud Kopkar AKM</h2>
+        </div>
+
+        <div className="mb-6">
+          <h3 className="font-bold uppercase text-base mb-3 border-b border-gray-400 inline-block">A. Identitas Peserta</h3>
+          <table className="w-full mt-2 text-base">
+            <tbody>
+              <tr><td className="w-48 py-2">Nama Lengkap</td><td>: {formData.nama || "..................................................."}</td></tr>
+              <tr><td className="py-2">NIK/NIP</td><td>: {formData.nik || "..................................................."}</td></tr>
+              <tr><td className="py-2">Jabatan</td><td>: {formData.jabatan}</td></tr>
+              <tr><td className="py-2">Unit Kerja</td><td>: {formData.unit || "..................................................."}</td></tr>
+              <tr><td className="py-2">No. HP/Email</td><td>: {formData.hp || "..................................................."}</td></tr>
+              <tr><td className="py-2">Tanggal Sosialisasi</td><td>: {formData.tanggal}</td></tr>
+              <tr><td className="py-2">Skor Pemahaman</td><td>: {score} / {modules.length} (Lulus Materi Dasar)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mb-6">
+          <h3 className="font-bold uppercase text-base mb-3 border-b border-gray-400 inline-block">B. Pernyataan Komitmen</h3>
+          <p className="mb-3">Dengan ini saya menyatakan kesungguhan hati untuk:</p>
+          <ol className="list-decimal pl-6 space-y-3 text-justify">
+            <li>
+              <strong>Memahami Definisi Fraud:</strong> Saya mengerti bahwa fraud mencakup penyalahgunaan aset (uang/barang), manipulasi laporan, dan korupsi/suap.
+            </li>
+            <li>
+              <strong>Menghindari Fraud Triangle:</strong> Saya akan menjaga diri dari tekanan gaya hidup, menutup kesempatan fraud dengan disiplin SOP, dan tidak mencari pembenaran atas tindakan curang.
+            </li>
+            <li>
+              <strong>Menyadari Dampak Fatal:</strong> Saya paham tindakan fraud dapat menyebabkan <em>Rush Money</em>, kebangkrutan koperasi, dan pidana penjara bagi pelaku.
+            </li>
+            <li>
+              <strong>Melaksanakan 4 Tameng Pertahanan:</strong>
+              <ul className="list-disc pl-5 mt-1">
+                <li>Melakukan pencegahan (ikuti SOP).</li>
+                <li>Mendukung deteksi (audit & lapor).</li>
+                <li>Kooperatif dalam investigasi.</li>
+                <li>Siap menerima sanksi tegas (PHK/Pidana) jika melanggar.</li>
+              </ul>
+            </li>
+            <li>
+              <strong>Whistleblowing:</strong> Saya berjanji melaporkan jika melihat rekan kerja atau atasan melakukan kecurangan demi keselamatan koperasi bersama.
+            </li>
+          </ol>
+        </div>
+
+        <div className="mt-12">
+          <h3 className="font-bold uppercase text-base mb-4 border-b border-gray-400 inline-block">C. Tanda Tangan</h3>
+          <p className="mb-8">Demikian pernyataan ini saya buat dalam keadaan sadar dan tanpa paksaan.</p>
+          <div className="flex justify-between mt-8 px-8">
+            <div className="text-center">
+              <p className="mb-20">Yang Menyatakan,</p>
+              <p className="font-bold underline text-lg">{formData.nama || "( Nama Jelas )"}</p>
+              <p>{formData.jabatan}</p>
+            </div>
+            <div className="text-center">
+              <p className="mb-20">Mengetahui (Saksi/Atasan),</p>
+              <p className="font-bold underline text-lg">( ........................................ )</p>
+              <p>Jabatan: ............................</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-16 text-center text-xs italic text-gray-500 border-t pt-2">
+          Dokumen dihasilkan otomatis dari Sistem Edukasi Digital Kopkar AKM. ID: {Date.now()}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default EdukasiFraudApp;
