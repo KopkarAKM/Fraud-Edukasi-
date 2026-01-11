@@ -46,7 +46,8 @@
         // --- KONFIGURASI ---
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwBMEhQlXyh9dwCX9d-WnU71c42y2kNdLHrCaJ4Ku4v-UoavPA7ZvK7PrvOmv5FmwBz_g/exec"; 
         const LOGO_URL = "https://i.ibb.co.com/WvTwLMn5/image-1.png";
-        const STORAGE_KEY = 'fraud_edu_state_v2'; // Update key version
+        const STORAGE_KEY = 'fraud_edu_state_v3'; // Update key version
+        const READ_TIME_SECONDS = 10; // Waktu minimal baca materi (detik)
 
         // --- KOMPONEN IKON ---
         const Icon = ({ path, className, color }) => (
@@ -65,6 +66,7 @@
         const Award = (props) => <Icon {...props} path={<><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></>} />;
         const RefreshCw = (props) => <Icon {...props} path={<><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></>} />;
         const Gavel = (props) => <Icon {...props} path={<><path d="M14 13l-9.5 9.5a2.5 2.5 0 0 0 3.5 3.5L17.5 16.5"/><path d="M8 8a2 2 0 1 1 2.83 2.83"/><path d="M8 8l9-9 3 3-9 9"/><path d="M10 21l5-5"/></>} />;
+        const Clock = (props) => <Icon {...props} path={<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>} />;
 
         // --- APLIKASI UTAMA ---
         const EdukasiFraudApp = () => {
@@ -80,6 +82,10 @@
             const [printMode, setPrintMode] = useState('none');
             const [dataRestored, setDataRestored] = useState(false);
             
+            // State Timer Anti-Speedrun
+            const [timeLeft, setTimeLeft] = useState(0);
+            const [canProceed, setCanProceed] = useState(true);
+
             const [formData, setFormData] = useState({
                 nama: '', nik: '', jabatan: 'Pengurus', unit: '', hp: '',
                 tanggal: new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })
@@ -307,6 +313,29 @@
                 }
             }, [formData, score, currentModule, step, scenarioIdx, quizIdx, activeModules]);
 
+            // --- TIMER LOGIC (ANTI-SPEEDRUN) ---
+            useEffect(() => {
+                if (step === 'materi') {
+                    setCanProceed(false);
+                    setTimeLeft(READ_TIME_SECONDS);
+                    
+                    const timer = setInterval(() => {
+                        setTimeLeft((prev) => {
+                            if (prev <= 1) {
+                                clearInterval(timer);
+                                setCanProceed(true);
+                                return 0;
+                            }
+                            return prev - 1;
+                        });
+                    }, 1000);
+
+                    return () => clearInterval(timer);
+                } else {
+                    setCanProceed(true);
+                }
+            }, [step, currentModule]); // Reset timer setiap ganti modul atau step materi baru
+
             // --- HANDLERS ---
             const handleReset = () => { if (confirm("Hapus progres?")) { localStorage.removeItem(STORAGE_KEY); window.location.reload(); } };
             const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -323,6 +352,8 @@
             };
 
             const handleNext = () => {
+                if (!canProceed && step === 'materi') return; // Cegah klik jika timer belum habis
+
                 setShowFeedback(false);
                 if (step === 'intro') setStep('materi');
                 else if (step === 'materi') { setStep('scenario'); setScenarioIdx(0); }
@@ -382,7 +413,19 @@
                                     <div className="animate-fade-in">
                                         <div className="flex items-center gap-3 mb-6 border-b pb-4"><div className="p-2 bg-gray-100 rounded-lg">{activeModules[currentModule].icon}</div><h2 className="text-lg font-bold text-blue-900 leading-tight">{activeModules[currentModule].title}</h2></div>
                                         <div className="prose prose-sm max-w-none text-gray-700 mb-8">{activeModules[currentModule].content}</div>
-                                        <button onClick={handleNext} className="w-full bg-blue-700 text-white py-3 rounded-lg font-bold flex justify-center items-center gap-2 hover:bg-blue-800"><Brain className="w-5 h-5"/> Studi Kasus</button>
+                                        
+                                        {/* TOMBOL LANJUT DENGAN TIMER ANTI-SPEEDRUN */}
+                                        <button 
+                                            onClick={handleNext} 
+                                            disabled={!canProceed}
+                                            className={`w-full py-3 rounded-lg font-bold flex justify-center items-center gap-2 transition ${canProceed ? 'bg-blue-700 hover:bg-blue-800 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                                        >
+                                            {canProceed ? (
+                                                <>Studi Kasus <Brain className="w-5 h-5"/></>
+                                            ) : (
+                                                <><Clock className="w-4 h-4 animate-spin"/> Baca dulu... ({timeLeft}s)</>
+                                            )}
+                                        </button>
                                     </div>
                                 )}
 
