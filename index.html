@@ -637,7 +637,6 @@ const App = () => {
   const [score,   setScore]   = useState(0);
   const [feedback, setFb]     = useState(null); // {type, msg}
   const [submitting, setSub]  = useState(false);
-  const [printMode, setPrint] = useState('');
   const [restored,  setRestored] = useState(false);
   const [timeLeft,  setTimeLeft] = useState(READ_TIME);
   const [canProceed,setCan]   = useState(false);
@@ -727,7 +726,13 @@ const App = () => {
     setSub(false); setStep('success');
   };
 
-  const print = (mode) => { setPrint(mode); setTimeout(()=>window.print(),400); };
+  // MENGUBAH ALUR FUNGSI CETAK DI SINI
+  const print = (mode) => { 
+      if (window.__triggerPrint) {
+          window.__triggerPrint(mode);
+      }
+  };
+  
   const retake = () => { setScore(0); setCurMod(0); setStep('materi'); setScenIdx(0); setQuizIdx(0); setFb(null); };
 
   if(modules.length===0) return <div className="min-h-screen flex items-center justify-center text-gray-500">Memuat modul…</div>;
