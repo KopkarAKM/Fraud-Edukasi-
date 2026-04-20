@@ -726,10 +726,10 @@ const App = () => {
     setSub(false); setStep('success');
   };
 
-  // MENGUBAH ALUR FUNGSI CETAK DI SINI
+  // MENGIRIM DATA FORM DAN SKOR SAAT TOMBOL CETAK DITEKAN
   const print = (mode) => { 
       if (window.__triggerPrint) {
-          window.__triggerPrint(mode);
+          window.__triggerPrint(mode, form, score);
       }
   };
   
@@ -1006,10 +1006,14 @@ const PrintWrapper = () => {
   const [data, setData] = useState(null);
   const [score, setScore] = useState(0);
 
+  // MENERIMA DATA SECARA LANGSUNG DARI FUNGSI CETAK
   useEffect(()=>{
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if(saved){ try{ const p=JSON.parse(saved); setData(p.form); setScore(p.score||0); }catch(e){} }
-    window.__triggerPrint = (m) => { setMode(m); setTimeout(()=>window.print(),400); };
+    window.__triggerPrint = (m, currentForm, currentScore) => { 
+        setMode(m); 
+        setData(currentForm);
+        setScore(currentScore);
+        setTimeout(()=>window.print(), 400); 
+    };
   },[]);
 
   if(!mode||!data) return null;
