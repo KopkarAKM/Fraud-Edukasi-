@@ -651,8 +651,16 @@ const App = () => {
         setStep(p.step||'intro');
         setScenIdx(p.scenIdx||0); 
         setQuizIdx(p.quizIdx||0);
-        if(p.modules&&p.modules.length>0) setModules(p.modules);
-        else randomize();
+        
+        if(p.modules && p.modules.length > 0) {
+          // Kembalikan elemen visual (content) dari data master MODULES
+          const restoredModules = p.modules.map(savedMod => ({
+            ...savedMod,
+            content: MODULES.find(orig => orig.id === savedMod.id)?.content
+          }));
+          setModules(restoredModules);
+        } else randomize();
+
         if(p.step&&p.step!=='intro'){ setRestored(true); setTimeout(()=>setRestored(false),3000); }
         return;
       }catch(e){ localStorage.removeItem(STORAGE_KEY); }
@@ -670,8 +678,11 @@ const App = () => {
 
   // Autosave
   useEffect(()=>{
-    if(modules.length>0)
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({form,score,curMod,step,scenIdx,quizIdx,modules,attempts}));
+    if(modules.length>0) {
+      // Hapus elemen visual sebelum disimpan agar tidak error saat dimuat ulang
+      const cleanModules = modules.map(({content, ...rest}) => rest);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({form,score,curMod,step,scenIdx,quizIdx,modules:cleanModules,attempts}));
+    }
   },[form,score,curMod,step,scenIdx,quizIdx,modules,attempts]);
 
   // Timer anti-speedrun
@@ -722,7 +733,8 @@ const App = () => {
     catch(e){}
     
     // Perbarui localStorage manual saat submit sukses agar print punya data terbaru
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({form,score,curMod,step:'success',scenIdx,quizIdx,modules,attempts}));
+    const cleanModules = modules.map(({content, ...rest}) => rest);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({form,score,curMod,step:'success',scenIdx,quizIdx,modules:cleanModules,attempts}));
     
     setSub(false); setStep('success');
   };
