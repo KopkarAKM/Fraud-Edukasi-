@@ -112,6 +112,7 @@ const LOGO_URL = "https://i.ibb.co.com/WvTwLMn5/image-1.png";
 const STORAGE_KEY = 'fraud_edu_akm_v5';
 const READ_TIME  = 20;   // detik minimum baca materi
 const PASS_PCT   = 80;   // persen kelulusan
+const MAX_ATTEMPTS = 3;  // maksimal percobaan perbaikan
 
 // ─── ICONS ─────────────────────────────────────────────────────────────────
 const Ic = ({d,className='w-5 h-5'}) => (
@@ -137,10 +138,9 @@ const icons = {
 const I = ({name, className}) => <Ic d={icons[name]} className={className||'w-5 h-5'} />;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MASTER DATA — 5 MODUL LENGKAP BERBASIS SFI 2025 + HUKUM KOPERASI
+// MASTER DATA
 // ═══════════════════════════════════════════════════════════════════════════
 const MODULES = [
-  // ── MODUL 1: ANATOMI FRAUD ────────────────────────────────────────────
   {
     id: 1,
     title: "Membedah Anatomi Fraud",
@@ -230,8 +230,6 @@ const MODULES = [
       { q:"Menerima komisi tersembunyi dari vendor koperasi termasuk kategori...", opts:["Insentif Bisnis Normal","Korupsi (Kickback)","Penyalahgunaan Aset"], ans:1 },
     ]
   },
-
-  // ── MODUL 2: FRAUD TRIANGLE ───────────────────────────────────────────
   {
     id: 2,
     title: "Fraud Triangle & Red Flags",
@@ -328,8 +326,6 @@ const MODULES = [
       { q:"Prinsip bahwa penerimaan kas dan pencatatan tidak boleh dikerjakan satu orang disebut...", opts:["Efisiensi Operasional","Pemisahan Tugas (Segregation of Duty)","Dual Control"], ans:1 },
     ]
   },
-
-  // ── MODUL 3: DETEKSI & PENCEGAHAN ────────────────────────────────────
   {
     id: 3,
     title: "Deteksi & Pencegahan Fraud",
@@ -430,8 +426,6 @@ const MODULES = [
       { q:"Prinsip otorisasi di mana dua orang berbeda harus menyetujui satu transaksi disebut...", opts:["Double Entry","Dual Control / Four Eyes Principle","Segregation of Duty"], ans:1 },
     ]
   },
-
-  // ── MODUL 4: SANKSI HUKUM LENGKAP ─────────────────────────────────────
   {
     id: 4,
     title: "Sanksi Hukum Pidana",
@@ -533,8 +527,6 @@ const MODULES = [
       { q:"Metode fraud yang paling umum digunakan pelaku di Indonesia menurut SFI 2025 (86,09%) adalah...", opts:["Mengubah entri jurnal digital","Membuat dokumen fisik palsu","Menghapus transaksi sistem"], ans:1 },
     ]
   },
-
-  // ── MODUL 5: KHUSUS KOPERASI ─────────────────────────────────────────
   {
     id: 5,
     title: "Fraud Khusus Koperasi",
@@ -631,11 +623,12 @@ const MODULES = [
 const App = () => {
   const [modules, setModules] = useState([]);
   const [curMod,  setCurMod]  = useState(0);
-  const [step,    setStep]    = useState('intro'); // intro|materi|scenario|quiz|summary|form|success
+  const [step,    setStep]    = useState('intro');
   const [scenIdx, setScenIdx] = useState(0);
   const [quizIdx, setQuizIdx] = useState(0);
   const [score,   setScore]   = useState(0);
-  const [feedback, setFb]     = useState(null); // {type, msg}
+  const [attempts, setAttempts] = useState(1); // Tambahkan pelacak percobaan
+  const [feedback, setFb]     = useState(null);
   const [submitting, setSub]  = useState(false);
   const [restored,  setRestored] = useState(false);
   const [timeLeft,  setTimeLeft] = useState(READ_TIME);
@@ -651,9 +644,13 @@ const App = () => {
     if(saved){
       try{
         const p = JSON.parse(saved);
-        setForm(p.form||form); setScore(p.score||0);
-        setCurMod(p.curMod||0); setStep(p.step||'intro');
-        setScenIdx(p.scenIdx||0); setQuizIdx(p.quizIdx||0);
+        setForm(p.form||form); 
+        setScore(p.score||0);
+        setAttempts(p.attempts||1); // Ambil data percobaan
+        setCurMod(p.curMod||0); 
+        setStep(p.step||'intro');
+        setScenIdx(p.scenIdx||0); 
+        setQuizIdx(p.quizIdx||0);
         if(p.modules&&p.modules.length>0) setModules(p.modules);
         else randomize();
         if(p.step&&p.step!=='intro'){ setRestored(true); setTimeout(()=>setRestored(false),3000); }
@@ -674,8 +671,8 @@ const App = () => {
   // Autosave
   useEffect(()=>{
     if(modules.length>0)
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({form,score,curMod,step,scenIdx,quizIdx,modules}));
-  },[form,score,curMod,step,scenIdx,quizIdx,modules]);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({form,score,curMod,step,scenIdx,quizIdx,modules,attempts}));
+  },[form,score,curMod,step,scenIdx,quizIdx,modules,attempts]);
 
   // Timer anti-speedrun
   useEffect(()=>{
@@ -723,17 +720,28 @@ const App = () => {
     setSub(true);
     try{ await fetch(GOOGLE_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({...form,skor:score,persen:finalPct})}); }
     catch(e){}
+    
+    // Perbarui localStorage manual saat submit sukses agar print punya data terbaru
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({form,score,curMod,step:'success',scenIdx,quizIdx,modules,attempts}));
+    
     setSub(false); setStep('success');
   };
 
-  // MENGIRIM DATA FORM DAN SKOR SAAT TOMBOL CETAK DITEKAN
   const print = (mode) => { 
       if (window.__triggerPrint) {
-          window.__triggerPrint(mode, form, score);
+          window.__triggerPrint(mode);
       }
   };
   
-  const retake = () => { setScore(0); setCurMod(0); setStep('materi'); setScenIdx(0); setQuizIdx(0); setFb(null); };
+  const retake = () => { 
+    setAttempts(a => a + 1); // Tambah jumlah percobaan
+    setScore(0); 
+    setCurMod(0); 
+    setStep('materi'); 
+    setScenIdx(0); 
+    setQuizIdx(0); 
+    setFb(null); 
+  };
 
   if(modules.length===0) return <div className="min-h-screen flex items-center justify-center text-gray-500">Memuat modul…</div>;
 
@@ -904,19 +912,26 @@ const App = () => {
                 {isPassed ? 'Selamat, Anda Lulus!' : 'Belum Memenuhi Syarat'}
               </h2>
               <div className={`text-5xl font-black my-4 ${isPassed?'text-green-600':'text-red-500'}`}>{finalPct}%</div>
-              <p className="text-gray-500 text-sm mb-6">Benar: {score} dari {totalQ} soal</p>
-              <p className="text-gray-600 text-sm px-4 mb-8">
-                {isPassed
-                  ? `Nilai Anda memenuhi standar minimum ${PASS_PCT}%. Isi lembar komitmen untuk mendapatkan sertifikat digital.`
-                  : `Nilai minimum kelulusan adalah ${PASS_PCT}%. Silakan pelajari ulang materi dan coba lagi.`
-                }
-              </p>
-              {isPassed
-                ? <button onClick={()=>setStep('form')} className="btn-primary w-full">Lanjut ke Lembar Komitmen →</button>
-                : <button onClick={retake} className="btn-gold w-full flex items-center justify-center gap-2">
-                    <I name="refresh"/> Ulangi Pelatihan
-                  </button>
-              }
+              
+              <div className="bg-gray-50 rounded-lg p-4 mb-6 text-sm text-gray-600">
+                <p>Benar: <strong>{score}</strong> dari <strong>{totalQ}</strong> soal</p>
+                <p>Percobaan ke: <strong>{attempts}</strong> dari maksimal <strong>{MAX_ATTEMPTS}</strong></p>
+              </div>
+
+              {isPassed ? (
+                <button onClick={()=>setStep('form')} className="btn-primary w-full">Lanjut ke Lembar Komitmen →</button>
+              ) : attempts < MAX_ATTEMPTS ? (
+                <div>
+                   <p className="text-gray-500 text-xs mb-4">Nilai kelulusan adalah {PASS_PCT}%. Anda masih punya {MAX_ATTEMPTS - attempts} kesempatan mengulang.</p>
+                   <button onClick={retake} className="btn-gold w-full flex items-center justify-center gap-2">
+                     <I name="refresh"/> Ulangi Pelatihan
+                   </button>
+                </div>
+              ) : (
+                <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 text-sm font-bold mt-4">
+                   Batas maksimal 3 kali percobaan sudah habis. Silakan hubungi admin atau HRD untuk pengaturan lebih lanjut.
+                </div>
+              )}
             </div>
           )}
 
@@ -1006,13 +1021,21 @@ const PrintWrapper = () => {
   const [data, setData] = useState(null);
   const [score, setScore] = useState(0);
 
-  // MENERIMA DATA SECARA LANGSUNG DARI FUNGSI CETAK
   useEffect(()=>{
-    window.__triggerPrint = (m, currentForm, currentScore) => { 
-        setMode(m); 
-        setData(currentForm);
-        setScore(currentScore);
-        setTimeout(()=>window.print(), 400); 
+    // Ubah fungsi print agar memuat ulang data terbaru dari localStorage sesaat sebelum cetak
+    window.__triggerPrint = (m) => { 
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if(saved){ 
+        try{ 
+          const p = JSON.parse(saved); 
+          setData(p.form); 
+          setScore(p.score||0); 
+        } catch(e){} 
+      }
+      setMode(m); 
+      
+      // Beri waktu 500ms agar DOM selesai memperbarui halaman cetak sebelum dialog print muncul
+      setTimeout(() => window.print(), 500); 
     };
   },[]);
 
